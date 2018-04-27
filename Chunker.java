@@ -62,7 +62,7 @@ public class Chunker {
     public void add(byte[] bytes){
         int[] arr = new int[bytes.length];
         for(int i=0;i<bytes.length;i++){
-            arr[i] = bytes[i];
+            arr[i] = bytes[i] & 0xFF;
         }
         add(arr);
     }
@@ -74,7 +74,7 @@ public class Chunker {
     }
     
     public void add(byte b){
-        add((int)b);
+        add(b & 0xFF);
     }
     
     public boolean hasNext(){
