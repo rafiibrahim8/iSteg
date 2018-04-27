@@ -24,9 +24,13 @@ public class Steg {
     
     public static String[] read(Path topFile){
         BufferedImage steg;
-        String[] ret = new String[]{"",""};
+        String[] ret = new String[]{"","",""};
         try {
             steg = ImageIO.read(topFile.toFile());
+	    if(steg == null) {
+            	ret[0]+=Steg.ERR_NOTANIMAGE;
+            	return ret;
+            }
         } catch (IOException e) {
             ret[0]+=Steg.ERR_FILEREAD;
             return ret;
