@@ -233,10 +233,12 @@ public class Steg {
             } catch (IOException ex) {
                 ret[0] += Steg.ERR_FILEWRITE;
                 Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, ex);
+		return ret;
             }
         } catch (FileNotFoundException ex) {
             ret[0]+=Steg.ERR_FILEWRITE;
             Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, ex);
+	    return ret;
         }
         ret[0]+=Steg.SUCCESS;
         ret[1] = new String(fileName.getChunkedByteArray());
