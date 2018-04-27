@@ -18,7 +18,8 @@ public class Steg {
     public static final int ERR_FILEREAD = 2;
     public static final int ERR_FILEWRITE = 3;
     public static final int ERR_NOSTEG = 4;
-    public static final int ERR_LOWIMGSIZE = 4;
+    public static final int ERR_LOWIMGSIZE = 5;
+    public static final int ERR_NOTANIMAGE = 6;
 	private static FileOutputStream fos;
     
     public static String[] read(Path topFile){
@@ -75,6 +76,8 @@ public class Steg {
         Chunker fileChk = new Chunker(Byte.SIZE,bitCount*3);
         try {
             image = ImageIO.read(topFile.toFile());
+	    if(image == null)
+            	return Steg.ERR_NOTANIMAGE;
             fileChk.add(Files.readAllBytes(bottomFile));
         } catch (IOException e) {
             Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, e);
@@ -110,6 +113,8 @@ public class Steg {
         Chunker textChk = new Chunker(Byte.SIZE,bitCount*3);
         try {
             image = ImageIO.read(topFile.toFile());
+	    if(image == null)
+            	return Steg.ERR_NOTANIMAGE;
             textChk.add(text.getBytes());
         } catch (IOException e) {
             return Steg.ERR_FILEREAD;
