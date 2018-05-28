@@ -1,5 +1,9 @@
+/*
+Encryption, Decryption function was written with help from:
+https://stackoverflow.com/questions/992019/java-256-bit-aes-password-based-encryption
+Answer by: erickson ( https://stackoverflow.com/users/3474/erickson )
+ */
 package isteg;
-import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -8,23 +12,34 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.security.SecureRandom;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.imageio.ImageIO;
 
 public class Steg {
     public static final int SUCCESS = 0;
+    public static final int SUCCESS_NOPASS = 10;
     public static final int ERR_BITCOUNT = 1;
     public static final int ERR_FILEREAD = 2;
     public static final int ERR_FILEWRITE = 3;
     public static final int ERR_NOSTEG = 4;
     public static final int ERR_LOWIMGSIZE = 5;
     public static final int ERR_NOTANIMAGE = 6;
-	private static FileOutputStream fos;
+    public static final int ERR_CIPHERFAILED = 7;
+    public static final int ERR_WRONGPWD = 8;
+    public static final int ERR_PASSREQ = 9;
+    private static FileOutputStream fos;
     
-    public static String[] read(Path topFile){
+    public static String[] read(Path topFile,char[] password){
         BufferedImage steg;
-        String[] ret = new String[]{"","",""};
+        if(password==null) {password=new char[0];} //avoiding NullPointerException
+        String[] ret = new String[]{"","",""}; //1st one for error/success,2nd one msg/fileName, 3rd is file or msg
         try {
             steg = ImageIO.read(topFile.toFile());
 	    if(steg == null) {
@@ -41,6 +56,10 @@ public class Steg {
         int type = rgb0>>8 & 0b1;
         int enc = rgb0 & 0b1;
         
+        if(enc==1 && password.length==0){
+            ret[0]+=Steg.ERR_PASSREQ;
+            return ret;
+        }
         //Verifying if the image has steganographic data in it by signature iSteg0
         
         int bitMaxVal = (bitCount==2)? 0b11:0b1;
@@ -60,21 +79,23 @@ public class Steg {
         }
         
         if(type==0){
-            ret = readFileSteg(steg,bitCount,enc,2+16/bitCount);
+            ret = readFileSteg(steg,bitCount,enc,password,2+16/bitCount);
         }
             
         else{
-            ret = readStringSteg(steg,bitCount,enc,2+16/bitCount);
+            ret = readStringSteg(steg,bitCount,enc,password,2+16/bitCount);
         }
            
         return ret;
     }
     
     //hide a file
-    public static int write(Path topFile,Path bottomFile,int bitCount,String newFileName){
+    public static int write(Path topFile,Path bottomFile,int bitCount,char[] password,String newFileName){
         if(bitCount!=1 && bitCount!=2)
             return Steg.ERR_BITCOUNT;
         BufferedImage image;
+        int enMode=1;
+        if(password.length==0) enMode=0;
         String fileName = bottomFile.getFileName().toString();
         
         Chunker fileChk = new Chunker(Byte.SIZE,bitCount*3);
@@ -82,9 +103,15 @@ public class Steg {
             image = ImageIO.read(topFile.toFile());
 	    if(image == null)
             	return Steg.ERR_NOTANIMAGE;
-            fileChk.add(Files.readAllBytes(bottomFile));
+            if(enMode==0)
+                fileChk.add(Files.readAllBytes(bottomFile));
+            else
+                try {
+                    fileChk.add(getEncrypted(password,Files.readAllBytes(bottomFile)));
+            } catch (CypherFailedException e) {
+                return Steg.ERR_CIPHERFAILED;
+            }
         } catch (IOException e) {
-            Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, e);
             return Steg.ERR_FILEREAD;
         }
         
@@ -92,7 +119,14 @@ public class Steg {
         sizeChk.add(fileChk.getSize());
         Chunker fileNameChk = new Chunker(Byte.SIZE,bitCount*3);
         Chunker fileNameSizeChk = new Chunker(12,bitCount*3);
-        fileNameChk.add(fileName.getBytes());
+        if(enMode==0)
+            fileNameChk.add(fileName.getBytes());
+        else
+            try {
+                fileNameChk.add(getEncrypted(password,fileName.getBytes()));
+        } catch (CypherFailedException e) {
+            return Steg.ERR_CIPHERFAILED;
+        }
         fileNameSizeChk.add(fileNameChk.getSize());
         
         int totalPixReq = 2+ sizeChk.getSize()+ fileNameSizeChk.getSize() + fileChk.getSize()+fileNameChk.getSize()+48/(3*bitCount); //+48/(3*bitCount) for iSteg0
@@ -100,7 +134,7 @@ public class Steg {
         	return Steg.ERR_LOWIMGSIZE;
         }
         
-        int i=init1Meta(image,bitCount,0,0);
+        int i=init1Meta(image,bitCount,0,enMode);
         i=imageWrite(i,image,sizeChk,bitCount);
         i=imageWrite(i,image,fileNameSizeChk,bitCount);
         i=imageWrite(i,image,fileChk,bitCount);
@@ -110,16 +144,25 @@ public class Steg {
     }
     
     //hide a text
-    public static int write(Path topFile,String text,int bitCount,String newFileName){
+    public static int write(Path topFile,String text,int bitCount,char[] password,String newFileName){
         if(bitCount!=1 && bitCount!=2)
             return Steg.ERR_BITCOUNT;
         BufferedImage image;
+        int enMode=1;
+        if(password.length==0) enMode=0;
         Chunker textChk = new Chunker(Byte.SIZE,bitCount*3);
         try {
             image = ImageIO.read(topFile.toFile());
 	    if(image == null)
             	return Steg.ERR_NOTANIMAGE;
-            textChk.add(text.getBytes());
+            if(enMode==0)
+                textChk.add(text.getBytes(StandardCharsets.UTF_8));
+            else
+                try {
+                    textChk.add(getEncrypted(password,text.getBytes(StandardCharsets.UTF_8)));
+            } catch (CypherFailedException e) {
+                return Steg.ERR_CIPHERFAILED;
+            }
         } catch (IOException e) {
             return Steg.ERR_FILEREAD;
         }
@@ -127,7 +170,7 @@ public class Steg {
         Chunker sizeChk = new Chunker(18,bitCount*3);
         sizeChk.add(textChk.getSize());
         
-        int i=init1Meta(image,bitCount,1,0);
+        int i=init1Meta(image,bitCount,1,enMode);
 
         int totalPixReq = 2+ textChk.getSize() + sizeChk.getSize()+48/(3*bitCount); //+48/(3*bitCount) for iSteg0
         if(totalPixReq > image.getHeight()*image.getWidth()) {
@@ -182,7 +225,7 @@ public class Steg {
         return Steg.SUCCESS;
     }
 
-    private static String[] readFileSteg(BufferedImage steg,int bitCount,int enc,int startIndex) {
+    private static String[] readFileSteg(BufferedImage steg,int bitCount,int enc,char[] password,int startIndex) {
         String ret[] = new String[]{"","","0"};
         Chunker fileSizeCalc = new Chunker(bitCount*3,30);
         Chunker nameSizeCalc = new Chunker(bitCount*3,12);
@@ -211,6 +254,31 @@ public class Steg {
         int fileEnd = nameSizeEnd + fileSizeCalc.get();
         int nameEnd = fileEnd + nameSizeCalc.get();
         
+        for(int i=fileEnd;i<nameEnd;i++){
+            int rgb = steg.getRGB(odm.get(i).x, odm.get(i).y);
+            int value= rgb>>16 & bitMaxVal;
+            value = value<<bitCount | (rgb>>8 & bitMaxVal);
+            value = value<<bitCount | (rgb & bitMaxVal);
+            fileName.add(value);
+        }
+        String succMsg="";
+        if(password.length!=0 && enc==0)
+            succMsg+=Steg.SUCCESS_NOPASS;
+        else
+            succMsg+=Steg.SUCCESS;
+        String fName=null;
+        if(enc==0)
+            fName = new String(fileName.getChunkedByteArray());
+        else try {
+            fName = new String(getDecrypted(password,fileName.getChunkedByteArray()));
+        } catch (ErrorPasswordException e) {
+            ret[0]+=Steg.ERR_WRONGPWD;
+            return ret;
+        } catch (CypherFailedException e) {
+            ret[0]+=Steg.ERR_CIPHERFAILED;
+            return ret;
+        }
+        
         for(int i=nameSizeEnd;i<fileEnd;i++){
             int rgb = steg.getRGB(odm.get(i).x, odm.get(i).y);
             int value= rgb>>16 & bitMaxVal;
@@ -219,37 +287,37 @@ public class Steg {
             file.add(value);
         }
         
-        for(int i=fileEnd;i<nameEnd;i++){
-            int rgb = steg.getRGB(odm.get(i).x, odm.get(i).y);
-            int value= rgb>>16 & bitMaxVal;
-            value = value<<bitCount | (rgb>>8 & bitMaxVal);
-            value = value<<bitCount | (rgb & bitMaxVal);
-            fileName.add(value);
-        }
         try {
-            fos = new FileOutputStream(new String(fileName.getChunkedByteArray()));
+            fos = new FileOutputStream(fName);
             try {
+                if(enc==0)
                 fos.write(file.getChunkedByteArray());
+                else
+                    try {
+                        fos.write(getDecrypted(password,file.getChunkedByteArray()));
+                } catch (Exception e) {
+                    ret[0]+=Steg.ERR_CIPHERFAILED;
+                    fos.close();
+                    return ret;
+                }
+                fos.close();
             } catch (IOException ex) {
                 ret[0] += Steg.ERR_FILEWRITE;
-                Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, ex);
 		return ret;
             }
         } catch (FileNotFoundException ex) {
             ret[0]+=Steg.ERR_FILEWRITE;
-            Logger.getLogger(Steg.class.getName()).log(Level.SEVERE, null, ex);
 	    return ret;
         }
-        ret[0]+=Steg.SUCCESS;
-        ret[1] = new String(fileName.getChunkedByteArray());
+        ret[0]+=succMsg;
+        ret[1] = fName;
         return ret;
     }
 
-    private static String[] readStringSteg(BufferedImage steg,int bitCount,int enc,int startIndex) {
+    private static String[] readStringSteg(BufferedImage steg,int bitCount,int enc,char[] password,int startIndex) {
         String ret[] = new String[]{"","","1"};
         Chunker textLenCalc = new Chunker(bitCount*3,18);
         int bitMaxVal = (bitCount==2)? 0b11:0b1;
-        //int bitMaxVal3 = (bitCount==2)? 0b111111:0b111;
         int textStart = 6/bitCount+startIndex;
         OneDimMaker odm = new OneDimMaker(steg.getWidth(),steg.getHeight());
         for(int i=startIndex;i<textStart;i++){
@@ -268,35 +336,86 @@ public class Steg {
             value = value<<bitCount | (rgb & bitMaxVal);
             toByte.add(value);
         }
-        ret[1] = new String(toByte.getChunkedByteArray());
-        ret[0] += Steg.SUCCESS;
+        
+        String succMsg="";
+        if(password.length!=0 && enc==0)
+            succMsg+=Steg.SUCCESS_NOPASS;
+        else
+            succMsg+=Steg.SUCCESS;
+        if(enc==0)
+            ret[1] = new String(toByte.getChunkedByteArray(),StandardCharsets.UTF_8);
+        else
+            try {
+                ret[1] = new String(getDecrypted(password,toByte.getChunkedByteArray()),StandardCharsets.UTF_8);
+        } catch (ErrorPasswordException e) {
+            ret[0]+=Steg.ERR_WRONGPWD;
+            return ret;
+        } catch (CypherFailedException e) {
+            ret[0]+=Steg.ERR_CIPHERFAILED;
+            return ret;
+        }
+        ret[0] += succMsg;
         return ret;
     }
 
-   
-}
-
-final class OneDimMaker{
-    //Use for accessing two dimensional array using just one index
-
-    public int totalSize;
-    public int w,h;
-    public OneDimMaker(int w,int h){
-        totalSize = w*h;
-        this.h=h;
-        this.w=w;
+    private static byte[] getEncrypted(char[] password, byte[] plain) throws CypherFailedException {
+        byte[] salt = new byte[16];
+        new SecureRandom().nextBytes(salt);
+        byte[] iv;
+        byte[] enc;
+        byte[] ret;
+        try {
+            SecretKey key = new SecretKeySpec(SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(new PBEKeySpec(password,salt,4096,256)).getEncoded(),"AES");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, key);
+            iv = cipher.getParameters().getParameterSpec(IvParameterSpec.class).getIV();
+            enc = cipher.doFinal(plain);
+            
+        } catch (Exception e) {
+            throw new CypherFailedException();
+        }
+        
+        ret = new byte[enc.length+salt.length+iv.length];
+        System.arraycopy(iv,0, ret, 0,iv.length);
+        System.arraycopy(salt,0, ret, iv.length, salt.length);
+        System.arraycopy(enc, 0, ret, iv.length+salt.length,enc.length);
+        
+        return ret;
     }
     
-    public Point get(int i){
-        if(i>=totalSize)
-            return null;
-        int x,y;
-        y = i/w;
-        if(y==0)
-           x=i;
-        else
-            x= i%(w*y);
+    private static byte[] getDecrypted(char[] password,byte[] cyp) throws CypherFailedException,ErrorPasswordException{
+        byte[] iv = new byte[16];
+        byte[] salt = new byte[16];
+        byte[] enc = new byte[cyp.length-32];
+        System.arraycopy(cyp,0,iv,0,iv.length);
+        System.arraycopy(cyp,iv.length, salt,0, salt.length);
+        System.arraycopy(cyp,iv.length+salt.length, enc, 0, enc.length);
         
-        return new Point(x,y);
+        try {
+            SecretKey key = new SecretKeySpec(SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256").generateSecret(new PBEKeySpec(password,salt,4096,256)).getEncoded(),"AES");
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+            return cipher.doFinal(enc);
+        } 
+        catch (BadPaddingException e) {
+                throw new ErrorPasswordException();
+        }
+        catch (Exception e) {
+            throw new CypherFailedException();
+        }
     }
+
+    private static class CypherFailedException extends Exception {
+
+        public CypherFailedException() {
+        }
+    }
+
+    private static class ErrorPasswordException extends Exception{
+
+        public ErrorPasswordException() {
+        }
+    }
+
+   
 }
