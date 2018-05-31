@@ -19,8 +19,8 @@ public class FilterTheFiles extends FileFilter{
 		if(file.isDirectory())
 			return true;
 		String path = file.getAbsolutePath().toString();
-		for(int i=0;i<extensions.length;i++) {
-			if(path.endsWith(extensions[i]))
+		for(String extension:extensions) {
+			if(path.endsWith(extension))
 				return true;
 		}
 		return false;
