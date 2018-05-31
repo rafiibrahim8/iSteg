@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 public class IStegCLI {
 
-    private static final String VCODE = "2.0";
+    private static final String VCODE = "2.01";
 	private static Scanner scanner;
 
 	public static void main(String[] args) {
@@ -52,7 +52,7 @@ public class IStegCLI {
                 System.out.println("Unable to read file \""+topFile+"\".");
                 break;
             case Steg.ERR_FILEWRITE:
-                System.out.println("Unable to Write file.");
+                System.out.println("Unable to write file.");
                 break;
             case Steg.ERR_LOWIMGSIZE:
                 System.out.println("The image resolution is too low to save all of the data.");
@@ -101,7 +101,7 @@ public class IStegCLI {
                 System.out.println("Unable to read file \""+topFile+"\" or "+"\""+bottomFile+"\"");
                 break;
             case Steg.ERR_FILEWRITE:
-                System.out.println("Unable to Write file.");
+                System.out.println("Unable to write file.");
                 break;
             case Steg.ERR_LOWIMGSIZE:
                 System.out.println("The image resolution is too low to save all of the data.");
@@ -126,11 +126,11 @@ public class IStegCLI {
             case Steg.SUCCESS:
             case Steg.SUCCESS_NOPASS:
                 if(data[2].equalsIgnoreCase("1")) {
-                    System.out.println("Message Extraction successful. The text is:\n");
+                    System.out.println("Message extraction successful. The text is:\n");
                     System.out.println(data[1]);
                 }
                 else {
-                    System.out.println("File Extraction successful. The file name is: "+data[1]);
+                    System.out.println("File extraction successful. The file name is: "+data[1]);
                 }
                 if(Integer.parseInt(data[0]) == Steg.SUCCESS_NOPASS)
                     System.out.println("The steganographic data wasn\'t encrypted");
