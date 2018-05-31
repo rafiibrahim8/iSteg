@@ -1,6 +1,6 @@
 /*
 Non-Static form of Steg.java
-=============================
+==============================
 Encryption, Decryption function was written with help from:
 https://stackoverflow.com/questions/992019/java-256-bit-aes-password-based-encryption
 Answer by: erickson ( https://stackoverflow.com/users/3474/erickson )
@@ -101,12 +101,7 @@ public class StegDym {
         int type = rgb0>>8 & 0b1;
         int enc = rgb0 & 0b1;
         
-        if(enc==1 && password.length==0){
-            error=StegDym.ERR_PASSREQ;
-            return;
-        }
         //Verifying if the image has steganographic data in it by signature iSteg0
-        
         int bitMaxVal = (bitCount==2)? 0b11:0b1;
         Chunker sign = new Chunker(bitCount*3,Byte.SIZE);
         OneDimMaker odm = new OneDimMaker(steg.getWidth(),steg.getHeight());
@@ -118,8 +113,13 @@ public class StegDym {
             sign.add(value);
         }
         
-        if(! "iSteg0".equals(new String(sign.getChunkedByteArray()))){
+        if(! "iSteg0".equals(new String(sign.getChunkedByteArray(),StandardCharsets.US_ASCII))){
             error = StegDym.ERR_NOSTEG;
+            return;
+        }
+        
+        if(enc==1 && password.length==0){
+            error=StegDym.ERR_PASSREQ;
             return;
         }
         
@@ -173,10 +173,10 @@ public class StegDym {
         Chunker fileNameChk = new Chunker(Byte.SIZE,bitCount*3);
         Chunker fileNameSizeChk = new Chunker(12,bitCount*3);
         if(enMode==0)
-            fileNameChk.add(fileName.getBytes());
+            fileNameChk.add(fileName.getBytes(StandardCharsets.UTF_8));
         else
             try {
-                fileNameChk.add(getEncrypted(password,fileName.getBytes()));
+                fileNameChk.add(getEncrypted(password,fileName.getBytes(StandardCharsets.UTF_8)));
         } catch (CypherFailedException e) {
             error =  StegDym.ERR_CIPHERFAILED;
             return;
@@ -322,9 +322,9 @@ public class StegDym {
 
         String fName;
         if(enc==0)
-            fName = new String(fileName.getChunkedByteArray());
+            fName = new String(fileName.getChunkedByteArray(),StandardCharsets.UTF_8);
         else try {
-            fName = new String(getDecrypted(password,fileName.getChunkedByteArray()));
+            fName = new String(getDecrypted(password,fileName.getChunkedByteArray()),StandardCharsets.UTF_8);
         } catch (ErrorPasswordException e) {
             error = StegDym.ERR_WRONGPWD;
             return;
