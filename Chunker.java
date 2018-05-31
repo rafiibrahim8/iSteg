@@ -60,16 +60,14 @@ public class Chunker {
     }
     
     public void add(byte[] bytes){
-        int[] arr = new int[bytes.length];
-        for(int i=0;i<bytes.length;i++){
-            arr[i] = bytes[i] & 0xFF;
+        for(byte b:bytes) {
+        	add(b);
         }
-        add(arr);
     }
     
     public void add(int[] ints){
-        for(int i=0;i<ints.length;i++){
-            add(ints[i]);
+        for(int i:ints){
+            add(i);
         }
     }
     
