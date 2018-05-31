@@ -25,7 +25,7 @@ import javax.swing.JPasswordField;
 
 public class IStegGUI {
 
-	private final String VCODE = "2.0";
+	private final String VCODE = "2.01";
 	
 	private JFrame frame;
 	private JTextField tfTopImage;
