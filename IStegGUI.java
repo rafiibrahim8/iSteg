@@ -146,7 +146,7 @@ public class IStegGUI {
 				fc.setFileFilter(new FilterTheFiles("Image Files",images));
 				if(fc.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
 					tfTopImage.setText(fc.getSelectedFile().getAbsolutePath().toString());
-					log("Top image selectrd: \""+fc.getSelectedFile().toString()+"\"");
+					log("Top image selected: \""+fc.getSelectedFile().toString()+"\"");
 				}
 				fcCurDir = fc.getCurrentDirectory();
 			}
@@ -169,7 +169,7 @@ public class IStegGUI {
 				fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 				if(fc.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
 					tfBottomFile.setText(fc.getSelectedFile().getAbsolutePath().toString());
-					log("Bottom file selectrd: \""+fc.getSelectedFile().toString()+"\"");
+					log("Bottom file selected: \""+fc.getSelectedFile().toString()+"\"");
 				}
 				fcCurDir = fc.getCurrentDirectory();
 			}
@@ -245,7 +245,7 @@ public class IStegGUI {
 				fc.setFileFilter(new FilterTheFiles("PNG Files",new String[] {".png"}));
 				if(fc.showOpenDialog(null)==JFileChooser.APPROVE_OPTION) {
 					tfStegFile.setText(fc.getSelectedFile().getAbsolutePath().toString());
-					log("Steg file selectrd: \""+fc.getSelectedFile().toString()+"\"");
+					log("Steg file selected: \""+fc.getSelectedFile().toString()+"\"");
 				}
 				fcCurDir = fc.getCurrentDirectory();
 			}
@@ -479,9 +479,9 @@ public class IStegGUI {
 			break;
 		case StegDym.SUCCESS_NOPASS:
 			if(mkSteg.getResultType() == StegDym.MESSAGE)
-				log("Oparation Completed successfully. The steganographic data was not encrypted with passsword.");
+				log("Oparation completed successfully. The steganographic data was not encrypted with passsword.");
 			else
-				log("Oparation Completed successfully. The steganographic data was not encrypted with passsword. Save your file now.");
+				log("Oparation completed successfully. The steganographic data was not encrypted with passsword. Save your file now.");
 			break;
 		default:
 			log("ERROR-102. Contact developer.");
