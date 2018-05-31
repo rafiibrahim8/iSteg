@@ -47,7 +47,6 @@ public class IStegGUI {
 	private JScrollPane scrollMsg;
 	private JPasswordField passwordField;
 	private JTextArea taLogs;
-	
 	private char defaultEchoChar;
 	private int fcSaveDialogReturn;
 	private StegDym mkSteg;
@@ -207,17 +206,17 @@ public class IStegGUI {
 		btDoSteg.setBounds(685, 152, 89, 48);
 		frame.getContentPane().add(btDoSteg);
 		
-		JCheckBox chckbxShowPasssword = new JCheckBox("Show Passsword");
-		chckbxShowPasssword.addActionListener(new ActionListener() {
+		JCheckBox chckbxShowPassword = new JCheckBox("Show Password");
+		chckbxShowPassword.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				if(chckbxShowPasssword.isSelected())
+				if(chckbxShowPassword.isSelected())
 					passwordField.setEchoChar((char)0);
 				else
 					passwordField.setEchoChar(defaultEchoChar);
 			}
 		});
-		chckbxShowPasssword.setBounds(488, 177, 182, 23);
-		frame.getContentPane().add(chckbxShowPasssword);
+		chckbxShowPassword.setBounds(488, 177, 182, 23);
+		frame.getContentPane().add(chckbxShowPassword);
 		
 		JLabel lblPasswordoptional = new JLabel("Password (optional):");
 		lblPasswordoptional.setBounds(355, 152, 133, 23);
@@ -448,7 +447,7 @@ public class IStegGUI {
 			log("Unable to read one or more file(s).");
 			break;
 		case StegDym.ERR_FILEWRITE:
-			log("Very Unexpected error. Contact developer.");
+			log("Very unexpected error. Contact developer.");
 			break;
 		case StegDym.ERR_LOWIMGSIZE:
 			taLogs.append(">> The image: \""+tfTopImage.getText()+"\" is too small to hold all of your data. ");
@@ -474,9 +473,9 @@ public class IStegGUI {
 			break;
 		case StegDym.SUCCESS:
 			if(mkSteg.getResultType() == StegDym.MESSAGE)
-				log("Oparation Completed successfully.");
+				log("Oparation completed successfully.");
 			else
-				log("Oparation Completed successfully. Save your file now.");
+				log("Oparation completed successfully. Save your file now.");
 			break;
 		case StegDym.SUCCESS_NOPASS:
 			if(mkSteg.getResultType() == StegDym.MESSAGE)
