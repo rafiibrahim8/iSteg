@@ -1,5 +1,4 @@
 package isteg;
-
 import java.awt.Point;
 
 public class OneDimMaker{
