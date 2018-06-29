@@ -22,10 +22,11 @@ import java.io.FileOutputStream;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import javax.swing.JPasswordField;
+import javax.swing.SwingConstants;
 
 public class IStegGUI {
 
-	private final String VCODE = "2.01";
+	private final String VCODE = "2.1";
 	
 	private JFrame frame;
 	private JTextField tfTopImage;
@@ -52,6 +53,7 @@ public class IStegGUI {
 	private StegDym mkSteg;
 	private File fcCurDir;
 	private JLabel lblSelectOne;
+	private JCheckBox chckbxDelFile;
 	
 	/**
 	 * Launch the application.
@@ -73,7 +75,7 @@ public class IStegGUI {
 	 * Create the application.
 	 */
 	public IStegGUI() {
-		mkSteg = new StegDym();
+		mkSteg = null;
 		fcCurDir=null;
 		initialize();
 	}
@@ -82,13 +84,14 @@ public class IStegGUI {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
-		String passwordTT, topImageTT, bottomFileTT, stegFileTT, lsb2TT,lsb1TT;
+		String passwordTT, topImageTT, bottomFileTT, stegFileTT, lsb2TT,lsb1TT,delFileTT;
 		passwordTT = "Enter password if you want to encrypt. Leave empty otherwise.";
 		topImageTT = "The image in which your file/message will be hidden.";
 		bottomFileTT = "The file you want to hide.";
 		stegFileTT = "The steganographic image from which your file/message will be extracted.";
 		lsb2TT = "Very low (undetectable) change in image quality. Holds more data than LSB-1.";
 		lsb1TT = "Ultra low (undetectable) change in image quality. Holds less data than LSB-2.";
+		delFileTT = "If checked, iSteg will delete file after successfully hiding it inside the image.";
 		
 		frame = new JFrame();
 		frame.setBounds(100, 100, 800, 480);
@@ -192,7 +195,8 @@ public class IStegGUI {
 		JButton btDoSteg = new JButton("Do it");
 		btDoSteg.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				mkSteg.reset();
+				System.gc();
+				mkSteg = new StegDym();
 				if(rdbtnHideAFile.isSelected())
 					hideFile();
 				else if(rdbtnRevealFilemesssage.isSelected())
@@ -201,6 +205,8 @@ public class IStegGUI {
 					hideMag();
 				else
 					log("Unexpected error.");
+				mkSteg.reset();
+				mkSteg = null;
 			}
 		});
 		btDoSteg.setBounds(685, 152, 89, 48);
@@ -307,10 +313,11 @@ public class IStegGUI {
 		taLogs.setWrapStyleWord(true);
 		
 		JLabel lblAbout = new JLabel("About");
+		lblAbout.setHorizontalAlignment(SwingConstants.CENTER);
 		lblAbout.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent arg0) {
-				JOptionPane.showMessageDialog(null,"iSteg v-"+VCODE+"\nby Ibrahim Rafi\nVisit: github.com/rafiibrahim8/iSteg to learn more.");
+				JOptionPane.showMessageDialog(null,"iSteg v-"+VCODE+"\nby Ibrahim Rafi\nVisit: github.com/rafiibrahim8/iSteg to learn more or report a bug.\n\nWARNING:\nTHIS SOFTWARE COMES WITH ABSOLUTELY NO WARRANTY. USE AT YOUR OWN RISK.");
 			}
 		});
 		lblAbout.setCursor(new Cursor(Cursor.HAND_CURSOR));
@@ -323,8 +330,14 @@ public class IStegGUI {
 		passwordField.setBounds(488, 152, 187, 25);
 		passwordField.setToolTipText(passwordTT);
 		frame.getContentPane().add(passwordField);
-		defaultEchoChar = passwordField.getEchoChar();
 		
+		chckbxDelFile = new JCheckBox("Delete the bottom file after hiding");
+		chckbxDelFile.setHorizontalAlignment(SwingConstants.TRAILING);
+		chckbxDelFile.setBounds(553, 78, 221, 23);
+		chckbxDelFile.setToolTipText(delFileTT);
+		frame.getContentPane().add(chckbxDelFile);
+		
+		defaultEchoChar = passwordField.getEchoChar();
 		showFileUI();
 	}
 
@@ -410,10 +423,16 @@ public class IStegGUI {
 					FileOutputStream fos = new FileOutputStream(new File(path));
 					ImageIO.write(mkSteg.getStegImg(),"png", fos);
 					fos.close();
+					log("Steganographic image saved successfully.");
+					if(chckbxDelFile.isSelected()) {
+						if(new File(tfBottomFile.getText()).delete())
+							log("Original file was deleted successfully.");
+						else
+							log("Unable to delete the file. Try deleting manually.");
+					}
 				} catch (Exception e) {
 					log("Error in saving file.");
 				}
-				log("Steganographic image saved successfully.");
 			}
 			else if(fcSaveDialogReturn == JFileChooser.CANCEL_OPTION)
 				log("Saving oparation cancelled by user.");
@@ -530,6 +549,7 @@ public class IStegGUI {
 		setBottomFileVisible(false);
 		setStegFileVisible(true);
 		setLSBRDVisible(false);
+		setDelFileVisible(false);
 	}
 
 	private void ShowMsgUI() {
@@ -538,6 +558,7 @@ public class IStegGUI {
 		setMsgVisible(true);
 		setStegFileVisible(false);
 		setLSBRDVisible(true);
+		setDelFileVisible(false);
 	}
 
 	private void showFileUI() {
@@ -546,15 +567,19 @@ public class IStegGUI {
 		setStegFileVisible(false);
 		setMsgVisible(false);
 		setLSBRDVisible(true);
+		setDelFileVisible(true);
 		
 	}
 	
+	private void setDelFileVisible(boolean value) {
+		chckbxDelFile.setVisible(value);
+		chckbxDelFile.setSelected(false);
+	}
 	private void setLSBRDVisible(boolean value) {
 		rdbtnlsb2.setVisible(value);
 		rdbtnlsb1.setVisible(value);
 		lblSelectOne.setVisible(value);
 	}
-
 	private void setTopImageVisible(boolean value) {
 		lblTopImage.setVisible(value);
 		btnTopImage.setVisible(value);
