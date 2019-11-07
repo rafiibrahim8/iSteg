@@ -28,4 +28,14 @@ iSteg can hide your file inside an image.
     `SHA256(iSteg-v2.1_GUI.jar) : 668655387e0cdfc08317f3ee5be74e3a3e040f23bf5619e64abd1eaf7afeb0b3`
     `SHA256(iSteg-v2.01_CLI.zip) : 4c83d24e7f0b1e07a8f6c63615c2d68e532c5dc8edfaabf8fe4856e2b5afc712`
     
+## Screenshots
+- GUI
+![Graphical User Interface (GUI)](https://i.imgur.com/7ZCfVQZ.png)
 
+- CLI
+![Command Line Interface (CLI)](https://i.imgur.com/4dHuyrz.png)
+
+## FAQ
+- What is top image & bottom file?
+
+  Ans: Top image is the image in which the your file will be hidden. Here bottom file is your file to be hidden. 
