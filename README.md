@@ -1,4 +1,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/449ac714104c4f3bb151d74dce3388cd)](https://www.codacy.com/manual/rafiibrahim8_2/iSteg?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rafiibrahim8/iSteg&amp;utm_campaign=Badge_Grade)
+[![HitCount](http://hits.dwyl.com/rafiibrahim8/iSteg.svg)](http://hits.dwyl.com/rafiibrahim8/iSteg)
 # iSteg
 #### A little steganography. Hiding text or file inside an image using LSB method
 iSteg can hide your file inside an image.
